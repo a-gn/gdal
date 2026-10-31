@@ -970,24 +970,26 @@ static herr_t HDF5AttrIterate(hid_t hH5ObjID, const char *pszAttrName,
         if (H5Tis_variable_str(hAttrNativeType))
         {
             char **papszStrings = static_cast<char **>(
-                VSI_MALLOC2_VERBOSE(nAttrElmts, sizeof(char *)));
+                VSI_CALLOC_VERBOSE(nAttrElmts, sizeof(char *)));
             if (papszStrings)
             {
                 // Read the values.
-                H5Aread(hAttrID, hAttrNativeType, papszStrings);
-
-                // Concatenate all values as one string separated by a space.
-                psContext->m_osValue =
-                    papszStrings[0] ? papszStrings[0] : "{NULL}";
-                for (hsize_t i = 1; i < nAttrElmts; i++)
+                if (H5Aread(hAttrID, hAttrNativeType, papszStrings) >= 0)
                 {
-                    psContext->m_osValue += " ";
-                    psContext->m_osValue +=
-                        papszStrings[i] ? papszStrings[i] : "{NULL}";
-                }
+                    // Concatenate all values as one string separated by a
+                    // space.
+                    psContext->m_osValue =
+                        papszStrings[0] ? papszStrings[0] : "{NULL}";
+                    for (hsize_t i = 1; i < nAttrElmts; i++)
+                    {
+                        psContext->m_osValue += " ";
+                        psContext->m_osValue +=
+                            papszStrings[i] ? papszStrings[i] : "{NULL}";
+                    }
 
-                H5Dvlen_reclaim(hAttrNativeType, hAttrSpace, H5P_DEFAULT,
-                                papszStrings);
+                    H5Dvlen_reclaim(hAttrNativeType, hAttrSpace, H5P_DEFAULT,
+                                    papszStrings);
+                }
                 CPLFree(papszStrings);
             }
         }
